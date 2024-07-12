@@ -1,8 +1,6 @@
 Strategia per sviluppare il software
 
-CLIENT (cosa può fare)
-
-- Si connette al server
+# CLIENT (cosa può fare)
 
 1. Può scrivere un file nel server in 2 modi (-w operation)
 
@@ -16,7 +14,7 @@ CLIENT (cosa può fare)
 
 3. Listare i file che si trovano in remotepath (-l operation)
 
-SERVER (cosa può fare)
+# SERVER (cosa può fare)
 
 1. Deve gestire richieste concorrenti
 
@@ -28,14 +26,13 @@ SERVER (cosa può fare)
 - client connection interruption
 - richiesta accesso a file non esistenti
 
-
-## Edge Cases
+# Edge Cases
 
 ### ERRORS
 - Client vuole leggere da un file remoto che non esiste.
 - Client vuole scrivere un file locale che non esiste.
 
-## SOLVABLE 
+### SOLVABLE 
 - Client vuole leggere un file ma vuole scriverlo su un path non esistente.
 - -> Soluzione: creo il path locale e ci scrivo dentro ciò che viene letto in remote.
 
@@ -44,3 +41,9 @@ SERVER (cosa può fare)
 
 - Client vuole listare un path non esistente 
 - -> Printo l'output di stderr di ls.
+
+# Blockings
+
+- A client cannot read when another is writing.
+- A client cannot write when another is reading.
+- A client cannot list when another is writing.
