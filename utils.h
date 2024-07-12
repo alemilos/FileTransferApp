@@ -1,4 +1,7 @@
+#include <dirent.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <time.h>
 
 /* Operations */
 #define READ 'r'
@@ -9,6 +12,7 @@
 
 /* Statuses */
 #define OK 200
+#define CREATED 201
 #define SERVERERROR 500
 #define NOTFOUND 404
 #define BADREQ 400
@@ -35,3 +39,5 @@ int mkdir_r(char *path);
    and assign it to 'file'
    */
 void file_from_path(char *path, char **filename);
+
+void list_files(char *path);

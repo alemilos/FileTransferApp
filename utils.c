@@ -98,3 +98,5 @@ int mkdir_r(char *path) {
 
   return 0;
 }
+
+void list_files(char *path) {}

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/sendfile.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -159,25 +160,44 @@ int main(int argc, char **argv) {
 }
 
 void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
-  char buff[BUFSIZE];
-  bzero(buff, BUFSIZE);
-
-  if (oflag) {
-    sprintf(buff, "%c %s %s", WRITE, f_arg_path, o_arg_path);
-  } else {
-    // If -o remote_path was not specified, the f_arg_path will be the
-    // remote_path.
-    sprintf(buff, "%c %s %s", WRITE, f_arg_path, f_arg_path);
+  if (f_arg_path == NULL) {
+    fprintf(stderr, "Missing File\n");
+    exit(EXIT_FAILURE);
   }
 
-  write(client_sd, buff, BUFSIZE);
-  recv(client_sd, buff, BUFSIZE, 0);
-  // If localpath == NULL or does not exist in FileSystem,
-  // perror();
+  if (access(f_arg_path, R_OK) != 0) {
+    perror(f_arg_path);
+    exit(EXIT_FAILURE);
+  }
 
-  // If remotepath == NULL, use the localpath
+  char op = WRITE;
+  write(client_sd, &op, sizeof(char));
 
-  // Write the localpath file to the server.
+  receive_status(client_sd, "op");
+
+  if (!oflag) {
+    // If -o not specified, -f filepath will be used to read file on server
+    o_arg_path = xstrdup(f_arg_path);
+  }
+
+  // Send filepath/filename to server
+  write(client_sd, o_arg_path, BUFSIZE);
+
+  // Check file exists on server
+  receive_status(client_sd, "resource");
+
+  // Send file size
+  struct stat obj;
+  stat(f_arg_path, &obj);
+
+  int fd = open(f_arg_path, O_RDONLY);
+  int f_size = obj.st_size;
+
+  // Tell the server the file size
+  write(client_sd, &f_size, sizeof(int));
+
+  // send file data
+  sendfile(client_sd, fd, NULL, f_size);
 }
 
 void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
@@ -192,6 +212,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   receive_status(client_sd, "op");
 
   if (!oflag) {
+    // If -o not specified, -f filepath will be used to write locally.
     o_arg_path = xstrdup(f_arg_path);
   }
 
@@ -200,15 +221,11 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   // Send filepath/filename to server
   write(client_sd, f_arg_path, BUFSIZE);
 
-  // If the -o filepath/filename doesn't exist, create
-  printf("Checking Or creating %s\n", o_arg_path);
-
+  // If the -o filepath/filename doesn't exist, create it
   if (mkdir_r(o_arg_path)) {
     perror("creating file");
     exit(EXIT_FAILURE);
   }
-
-  printf("Opening %s\n", o_arg_path_cpy);
 
   int fd;
   if ((fd = open(o_arg_path_cpy, O_RDWR, FULLACCESS)) == -1) {
@@ -224,7 +241,6 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   recv(client_sd, &f_size, sizeof(int), 0);
 
   // Get File data
-  int bytes_read;
   char *data;
 
   FILE *fp = fopen(o_arg_path_cpy, "w");
@@ -239,25 +255,33 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
     fclose(fp);
   }
 
+  //////////////
+  // Free Memory
   if (o_arg_path_cpy != NULL) {
     free(o_arg_path_cpy);
   }
-
   if (data != NULL) {
     free(data);
   }
+  //////////////
 }
 
 void ls_from_server(int client_sd, char *f_arg_path) {
-  char buff[BUFSIZE];
-  bzero(buff, BUFSIZE);
+  if (f_arg_path == NULL) {
+    fprintf(stderr, "Missing File\n");
+    exit(EXIT_FAILURE);
+  }
 
-  sprintf(buff, "%c %s", LIST, f_arg_path);
-  write(client_sd, buff, BUFSIZE);
+  char op = LIST;
+  write(client_sd, &op, sizeof(char));
 
-  // If remotepath == NULL, perror()
+  receive_status(client_sd, "op");
 
-  // Read the remotepath ls from the server()
+  // Send filepath/filename to server
+  write(client_sd, f_arg_path, BUFSIZE);
+
+  // Check file exists on server
+  receive_status(client_sd, "path opened");
 }
 
 void receive_status(int client_sd, char *message) {
@@ -266,6 +290,10 @@ void receive_status(int client_sd, char *message) {
 
   if (status == OK) {
     fprintf(stdout, "%d: %s\n", OK, message);
+    return;
+  }
+  if (status == CREATED) {
+    fprintf(stdout, "%d: %s\n", CREATED, message);
     return;
   }
   if (status == BADREQ) {

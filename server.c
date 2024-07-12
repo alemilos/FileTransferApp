@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <asm-generic/socket.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -73,6 +74,13 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   };
 
+  // Make reconnection to same port available
+  int optval = 1;
+  if (setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) <
+      0) {
+    perror("setsockopt(SO_REUSEADDR) failed");
+  }
+
   struct sockaddr_in server;
 
   server.sin_addr.s_addr = inet_addr(server_address);
@@ -98,6 +106,7 @@ int main(int argc, char **argv) {
   while ((client_sd = accept(server_sd, &client, &size_sockaddr)) >= 0) {
     printf("Socket %d connected\n", client_sd);
     handle_connection(client_sd);
+    printf("Handler completed\n");
   }
 
   printf("Server closed.\n");
@@ -162,17 +171,75 @@ void handle_connection(int client_sd) {
     handle_read(client_sd, filepath);
   }
   if (op == WRITE) {
-    // handle_write(client_sd, );
+    handle_write(client_sd, filepath);
   }
   if (op == LIST) {
+    handle_ls(client_sd, filepath);
   }
 }
 
+//////////////////////////////////////////////////////////////////////
+// Handle Write
+//////////////////////////////////////////////////////////////////////
+void handle_write(int client_sd, char *write_path) {
+  char fullpath[BUFSIZE];
+  sprintf(fullpath, "%s/%s", ft_root_dir_pathname, write_path);
+
+  char *fullpath_cpy = xstrdup(fullpath);
+
+  if (access(fullpath, R_OK) == 0) {
+    notify_status(client_sd, OK);
+  } else {
+    // The file needs to be created, so client can write on it.
+
+    if (mkdir_r(fullpath) == 0) {
+      // Creation success
+      notify_status(client_sd, CREATED);
+
+    } else {
+      // Creation fail
+      notify_status(client_sd, SERVERERROR);
+      // TODO: should close(client_sd) ?
+      return;
+    }
+  }
+
+  // Receive the file_size to write.
+  int f_size;
+  recv(client_sd, &f_size, sizeof(int), 0);
+
+  // Get File data
+  char *data;
+
+  FILE *fp = fopen(fullpath_cpy, "w");
+
+  data = xmalloc(f_size + 1);
+
+  int t = recv(client_sd, data, f_size, 0);
+  data[t] = '\0';
+
+  fputs(data, fp);
+  if (fp != NULL) {
+    fclose(fp);
+  }
+
+  //////////////
+  // Free Memory
+  if (fullpath_cpy != NULL) {
+    free(fullpath_cpy);
+  }
+  if (data != NULL) {
+    free(data);
+  }
+  //////////////
+}
+
+//////////////////////////////////////////////////////////////////////
+// Handle Read
+//////////////////////////////////////////////////////////////////////
 void handle_read(int client_sd, char *read_path) {
   char fullpath[BUFSIZE];
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, read_path);
-
-  printf("The full path %s\n", fullpath);
 
   if (access(fullpath, R_OK) == 0) {
     notify_status(client_sd, OK);
@@ -186,13 +253,26 @@ void handle_read(int client_sd, char *read_path) {
     // Tell the client the file size
     write(client_sd, &f_size, sizeof(int));
 
-    int bytes_sent;
-    while ((bytes_sent = sendfile(client_sd, fd, NULL, BUFSIZE)) > 0) {
-      printf("Sent %d bytes\n", bytes_sent);
-    }
-
+    sendfile(client_sd, fd, NULL, f_size);
   } else {
-    // the file doesn't exist or cannot be accessed
+    // the file doesn't exist or cannot be accessed. Client Cannot read.
+    notify_status(client_sd, NOTFOUND);
+  }
+}
+
+//////////////////////////////////////////////////////////////////////
+// Handle List
+//////////////////////////////////////////////////////////////////////
+void handle_ls(int client_sd, char *path) {
+  char fullpath[BUFSIZE];
+  sprintf(fullpath, "%s/%s", ft_root_dir_pathname, path);
+
+  if (access(fullpath, R_OK) == 0) {
+    notify_status(client_sd, OK);
+
+    printf("Listing %s\n", fullpath);
+    list_files(fullpath);
+  } else {
     notify_status(client_sd, NOTFOUND);
   }
 }

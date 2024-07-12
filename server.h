@@ -14,11 +14,11 @@ void handle_read(int client_sd, char *read_path);
 
 /* Meccanismo bloccante, non posso scrivere se qualcuno sta già
    leggendo/scrivendo sul file */
-void handle_write();
+void handle_write(int client_sd, char *write_path);
 
 /* Meccanismo bloccante, non posso listare se qualcuno sta scrivendo sulla
  * cartella */
-void handle_ls();
+void handle_ls(int client_sd, char *path);
 
 /* Qui gestisco i blockings mechanisms per la lettura scrittura su un
  * file/cartella */
