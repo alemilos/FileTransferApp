@@ -181,9 +181,6 @@ void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
 }
 
 void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
-  char request[BUFSIZE];
-  bzero(request, BUFSIZE);
-
   if (f_arg_path == NULL) {
     fprintf(stderr, "Missing File\n");
     exit(EXIT_FAILURE);
@@ -192,40 +189,39 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   char op = READ;
   write(client_sd, &op, sizeof(char));
 
-  printf("PATH: %s\n", f_arg_path);
-  // If localpath does not exist in FileSystem, create it.
+  receive_status(client_sd, "op");
+
+  if (!oflag) {
+    o_arg_path = xstrdup(f_arg_path);
+  }
+
+  // If the -o filepath/filename doesn't exist, create
+  printf("Checking Or creating %s\n", o_arg_path);
+  mkdir_r(o_arg_path);
+
+  printf("Opening %s\n", o_arg_path);
+
   int fd;
-  if ((fd = open(f_arg_path, O_CREAT | O_RDWR, FULLACCESS)) == -1) {
+  if ((fd = open(o_arg_path, O_RDWR, FULLACCESS)) == -1) {
     perror("open");
     exit(EXIT_FAILURE);
   }
 
-  if (oflag) {
-    sprintf(request, "%s %s", f_arg_path, o_arg_path);
-  } else {
-    // If -o local_path was not specified, the f_arg_path will be the
-    // local_path
-    sprintf(request, "%s %s", f_arg_path, f_arg_path);
-  }
+  // Send filepath/filename to server
+  write(client_sd, f_arg_path, BUFSIZE);
 
-  write(client_sd, request, BUFSIZE);
-
-  int f_size;
+  // Check file exists on server
+  receive_status(client_sd, "sent file");
 
   // Check File Size
+  int f_size;
   recv(client_sd, &f_size, sizeof(int), 0);
-  printf("F SIZE: %d\n", f_size);
 
   // Get File data
   int bytes_read;
   char *data;
-  // char data[BUFSIZE];
-  FILE *fp = fopen(o_arg_path, "w");
 
-  // while ((bytes_read = recv(client_sd, data, BUFSIZE, 0)) > 0) {
-  //   printf("Read %d Bytes\n", bytes_read);
-  //   fputs(data, fp);
-  // }
+  FILE *fp = fopen(o_arg_path, "w");
 
   data = xmalloc(f_size + 1);
 
@@ -248,4 +244,26 @@ void ls_from_server(int client_sd, char *f_arg_path) {
   // If remotepath == NULL, perror()
 
   // Read the remotepath ls from the server()
+}
+
+void receive_status(int client_sd, char *message) {
+  int status;
+  recv(client_sd, &status, sizeof(int), 0);
+
+  if (status == OK) {
+    fprintf(stdout, "%d: %s\n", OK, message);
+    return;
+  }
+  if (status == BADREQ) {
+    fprintf(stderr, "%d: %s\n", BADREQ, message);
+    exit(EXIT_FAILURE);
+  }
+  if (status == SERVERERROR) {
+    fprintf(stderr, "%d: %s\n", SERVERERROR, message);
+    exit(EXIT_FAILURE);
+  }
+  if (status == NOTFOUND) {
+    fprintf(stderr, "%d: %s\n", NOTFOUND, message);
+    exit(EXIT_FAILURE);
+  }
 }

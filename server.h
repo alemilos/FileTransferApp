@@ -10,7 +10,7 @@ extern int aflag, pflag, dflag;
 void handle_connection(int client_sd);
 
 /* Meccanismo bloccante, non posso leggere se qualcuno sta scrivendo il file */
-void handle_read(int client_sd, char *read_path, char *write_path);
+void handle_read(int client_sd, char *read_path);
 
 /* Meccanismo bloccante, non posso scrivere se qualcuno sta già
    leggendo/scrivendo sul file */
@@ -30,7 +30,7 @@ void handle_blocks();
    - WRITE con Disk Space non sufficiente
    - CONNECTION terminated (crash o altro)
 */
-void notify_client(int client_sd, char *message, int status);
+void notify_status(int client_sd, int status);
 
 /* Check if the path exists, otherwise create it.
    Returns:

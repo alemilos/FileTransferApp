@@ -145,36 +145,21 @@ void handle_connection(int client_sd) {
   char op;
   recv(client_sd, &op, sizeof(char), 0);
 
-  char request[BUFSIZE];
-  recv(client_sd, request, BUFSIZE, 0);
-
   // 1. Find the OP that client wants to perform.
   // char op = request[0];
   if (op != READ && op != WRITE && op != LIST) {
-    notify_client(client_sd, "Invalid Operation", BADREQ);
+    notify_status(client_sd, BADREQ);
     return;
+  } else {
+    notify_status(client_sd, OK);
   }
 
-  // 2. Extract the paths required for the OPS.
-  char f_arg_path[BUFSIZE];
-  char o_arg_path[BUFSIZE];
-
-  char *tok = request;
-  int ind = 0;
-  while ((tok = strtok(tok, " ")) != NULL) {
-    if (ind == 0) {
-      sprintf(f_arg_path, "%s", tok);
-    }
-    if (ind == 1) {
-      sprintf(o_arg_path, "%s", tok);
-    }
-    tok = NULL;
-    ind++;
-  }
+  char filepath[BUFSIZE];
+  recv(client_sd, filepath, BUFSIZE, 0);
 
   // 3. Call the handler for that OP.
   if (op == READ) {
-    handle_read(client_sd, f_arg_path, o_arg_path);
+    handle_read(client_sd, filepath);
   }
   if (op == WRITE) {
     // handle_write(client_sd, );
@@ -183,13 +168,15 @@ void handle_connection(int client_sd) {
   }
 }
 
-void handle_read(int client_sd, char *read_path, char *write_path) {
+void handle_read(int client_sd, char *read_path) {
   char fullpath[BUFSIZE];
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, read_path);
 
   printf("The full path %s\n", fullpath);
 
   if (access(fullpath, R_OK) == 0) {
+    notify_status(client_sd, OK);
+
     struct stat obj;
     stat(fullpath, &obj);
 
@@ -206,18 +193,10 @@ void handle_read(int client_sd, char *read_path, char *write_path) {
 
   } else {
     // the file doesn't exist or cannot be accessed
-    notify_client(client_sd, "Invalid Path", NOTFOUND);
+    notify_status(client_sd, NOTFOUND);
   }
 }
 
-void notify_client(int client_sd, char *message, int status) {
-  char notification[BUFSIZE];
-
-  if (message == NULL) {
-    sprintf(notification, "%d: %s\n", status, "Undefined Error");
-  } else {
-    sprintf(notification, "%d: %s\n", status, message);
-  }
-
-  write(client_sd, notification, strlen(notification));
-};
+void notify_status(int client_sd, int status) {
+  write(client_sd, &status, sizeof(int));
+}

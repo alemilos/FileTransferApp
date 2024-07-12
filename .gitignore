@@ -3,3 +3,5 @@
 *.o
 /.vscode
 /root
+test
+test.c
