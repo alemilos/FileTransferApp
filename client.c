@@ -195,20 +195,26 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
     o_arg_path = xstrdup(f_arg_path);
   }
 
-  // If the -o filepath/filename doesn't exist, create
-  printf("Checking Or creating %s\n", o_arg_path);
-  mkdir_r(o_arg_path);
-
-  printf("Opening %s\n", o_arg_path);
-
-  int fd;
-  if ((fd = open(o_arg_path, O_RDWR, FULLACCESS)) == -1) {
-    perror("open");
-    exit(EXIT_FAILURE);
-  }
+  char *o_arg_path_cpy = xstrdup(o_arg_path);
 
   // Send filepath/filename to server
   write(client_sd, f_arg_path, BUFSIZE);
+
+  // If the -o filepath/filename doesn't exist, create
+  printf("Checking Or creating %s\n", o_arg_path);
+
+  if (mkdir_r(o_arg_path)) {
+    perror("creating file");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Opening %s\n", o_arg_path_cpy);
+
+  int fd;
+  if ((fd = open(o_arg_path_cpy, O_RDWR, FULLACCESS)) == -1) {
+    perror("open");
+    exit(EXIT_FAILURE);
+  }
 
   // Check file exists on server
   receive_status(client_sd, "sent file");
@@ -221,7 +227,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   int bytes_read;
   char *data;
 
-  FILE *fp = fopen(o_arg_path, "w");
+  FILE *fp = fopen(o_arg_path_cpy, "w");
 
   data = xmalloc(f_size + 1);
 
@@ -229,9 +235,17 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   data[t] = '\0';
 
   fputs(data, fp);
-  fclose(fp);
+  if (fp != NULL) {
+    fclose(fp);
+  }
 
-  printf("Test\n");
+  if (o_arg_path_cpy != NULL) {
+    free(o_arg_path_cpy);
+  }
+
+  if (data != NULL) {
+    free(data);
+  }
 }
 
 void ls_from_server(int client_sd, char *f_arg_path) {

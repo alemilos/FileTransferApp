@@ -63,7 +63,6 @@ int mkdir_r(char *path) {
 
     // Remove the filename from path
     file_from_path(path, &filename);
-    printf("path: %s\nfilename: %s\n", path, filename);
 
     // If path is NULL or empty return (base case)
 
@@ -77,7 +76,6 @@ int mkdir_r(char *path) {
       } else {
         sprintf(leftpath, "%s", tok);
       }
-      printf("Checking %s\n", leftpath);
       if (access(leftpath, R_OK) != 0) {
         mkdir(leftpath, FULLACCESS);
       }
