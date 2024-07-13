@@ -288,12 +288,16 @@ void receive_status(int client_sd, char *message) {
     fprintf(stderr, "%d: %s\n", BADREQ, message);
     exit(EXIT_FAILURE);
   }
+  if (status == NOTFOUND) {
+    fprintf(stderr, "%d: %s\n", NOTFOUND, message);
+    exit(EXIT_FAILURE);
+  }
   if (status == SERVERERROR) {
     fprintf(stderr, "%d: %s\n", SERVERERROR, message);
     exit(EXIT_FAILURE);
   }
-  if (status == NOTFOUND) {
-    fprintf(stderr, "%d: %s\n", NOTFOUND, message);
+  if (status == LOCKERR) {
+    fprintf(stderr, "%d: %s\n", LOCKERR, message);
     exit(EXIT_FAILURE);
   }
 }

@@ -13,9 +13,12 @@
 /* Statuses */
 #define OK 200
 #define CREATED 201
-#define SERVERERROR 500
-#define NOTFOUND 404
 #define BADREQ 400
+#define NOTFOUND 404
+#define SERVERERROR 500
+
+#define LOCKERR 501
+#define STATERR 502
 
 #define BUFSIZE 1024
 

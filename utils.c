@@ -1,3 +1,5 @@
+#include <cerrno>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,9 +57,9 @@ int mkdir_p(char *path) {
     return 0;
   }
 
-  if (access(path, R_OK) != 0) {
+  int fd = open(path, O_WRONLY);
+  if (errno != EEXIST) {
     // Path Must be created
-
     char *pathcpy = xstrdup(path);
     char *filename = NULL;
 
@@ -99,7 +101,9 @@ int mkdir_p(char *path) {
     free(pathcpy);
     free(filename);
     free(leftpath);
-  };
+  } else {
+    return 0;
+  }
 
   return 1;
 }

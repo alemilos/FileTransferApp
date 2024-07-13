@@ -191,16 +191,22 @@ void handle_write(int client_sd, char *write_path) {
     notify_status(client_sd, OK);
   } else {
     // The file needs to be created, so client can write on it.
-
+    printf("REFACTOR MKDIR_P CON DIRNAME");
     if (mkdir_p(fullpath)) {
+
+      // TODO: Creare il file
+      // int fd = open(path, O_WRONLY|O_CREAT, 0660);
+      // flock(fd, LOCK_EX)
+      // ftrunc(fd, 0)
+      // write from client ()
+      // close(fd)
+      printf("CREARE FILE DA QUI");
       // Creation success
       notify_status(client_sd, CREATED);
 
     } else {
       // Creation fail
       notify_status(client_sd, SERVERERROR);
-      // TODO: should close(client_sd) ?
-      return;
     }
   }
 
@@ -219,12 +225,13 @@ void handle_write(int client_sd, char *write_path) {
   data[t] = '\0';
 
   fputs(data, fp);
+
+//////////////
+// Free Memory
+Exit:
   if (fp != NULL) {
     fclose(fp);
   }
-
-  //////////////
-  // Free Memory
   free(fullpath_cpy);
   free(data);
   //////////////
@@ -245,12 +252,17 @@ void handle_read(int client_sd, char *read_path) {
   }
 
   if (flock(fd, LOCK_SH) == -1) {
+    notify_status(client_sd, LOCKERR);
+    goto Exit;
   }
 
   notify_status(client_sd, OK);
 
   struct stat obj;
-  stat(fullpath, &obj);
+  if (stat(fullpath, &obj) == -1) {
+    notify_status(client_sd, STATERR);
+    goto Exit;
+  }
 
   int f_size = obj.st_size;
 
@@ -260,7 +272,9 @@ void handle_read(int client_sd, char *read_path) {
   // Send data
   sendfile(client_sd, fd, NULL, f_size);
 
-  close(fd);
+Exit:
+  if (fd != -1)
+    close(fd);
 }
 
 //////////////////////////////////////////////////////////////////////
