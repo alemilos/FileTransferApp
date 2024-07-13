@@ -1,25 +1,19 @@
 #include <arpa/inet.h>
-#include <asm-generic/socket.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <libgen.h>
-#include <netinet/in.h>
 #include <pthread.h>
-#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
 #include <sys/sendfile.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "server.h"
-#include "utils.h"
 
 int aflag, pflag, dflag;
 char *ft_root_dir_pathname = NULL;
@@ -27,12 +21,11 @@ char *ft_root_dir_pathname = NULL;
 int main(int argc, char **argv) {
 
   int opt;
-  int server_port;
+  uint16_t server_port;
   DIR *ft_root_dir = NULL;
   char *server_address = NULL;
 
   while ((opt = getopt(argc, argv, "a:p:d:h")) != -1) {
-    char *eptr;
     switch (opt) {
     case 'a':
       server_address = xstrdup(optarg);
@@ -41,7 +34,8 @@ int main(int argc, char **argv) {
 
     case 'p':
       // Check positivity and make sure sscanf doesn't fail
-      if (isdigit(optarg[0]) != 0 && sscanf(optarg, "%u", &server_port) != 0) {
+      if (isdigit(optarg[0]) != 0 &&
+          sscanf(optarg, "%" SCNu16, &server_port) != 0) {
         pflag = 1;
       }
       break;
@@ -199,19 +193,17 @@ void handle_write(int client_sd, char *write_path) {
       fd = open(fullpath, O_WRONLY | O_CREAT, FILEACC);
       if (fd < 0) {
         notify_status(client_sd, SERVERERROR);
-        return;
+        goto Exit;
       }
 
       if (flock(fd, LOCK_EX) == -1) {
         notify_status(client_sd, LOCKERR);
-        close(fd);
-        return;
+        goto Exit;
       }
 
       if (ftruncate(fd, 0)) {
         notify_status(client_sd, SERVERERROR);
-        close(fd);
-        return;
+        goto Exit;
       }
 
       // Creation success
@@ -220,7 +212,7 @@ void handle_write(int client_sd, char *write_path) {
     } else {
       // Creation fail
       notify_status(client_sd, SERVERERROR);
-      return;
+      goto Exit;
     }
   }
 
@@ -296,17 +288,23 @@ Exit:
 // Handle List
 //////////////////////////////////////////////////////////////////////
 void handle_ls(int client_sd, char *path) {
-  char fullpath[BUFSIZE];
+  char *fullpath = xmalloc(strlen(path) + strlen(ft_root_dir_pathname) + 2);
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, path);
 
   if (access(fullpath, R_OK) == 0) {
     notify_status(client_sd, OK);
 
     printf("Listing %s\n", fullpath);
-    list_files(fullpath);
+    char *buffer;
+
+    ls_la(fullpath, &buffer);
+
+    free(buffer);
   } else {
     notify_status(client_sd, NOTFOUND);
   }
+
+  free(fullpath);
 }
 
 void notify_status(int client_sd, int status) {

@@ -21,7 +21,12 @@
 #define LOCKERR 501
 #define STATERR 502
 
+/* Constants types */
+#define ULONG_SLEN 19
+
+/* Bufsizes */
 #define BUFSIZE 1024
+#define MAX_NAME_L 256
 
 void *memcheck(const char *name, void *mem);
 
@@ -37,12 +42,8 @@ void *xstrdup(const char *s);
    -1 on failure. */
 int mkdir_p(char *path);
 
-/* Extract the filename from the path
-   e.g: d1/d2/.../dn/file
-   will extract the filename from the path
-   and assign it to 'file'
-   */
-void file_from_path(char *path, char **filename);
-
-/* Simulate the ls -la command and fill a buffer with the output */
-void list_files(char *path);
+/* Simulate the ls -la command and fill a buffer with the output .
+   Returns 0 on success.
+   1 on failure.
+*/
+int ls_la(char *path, char **buffer);

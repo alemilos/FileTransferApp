@@ -1,5 +1,4 @@
 #include "utils.h"
-#include <dirent.h>
 
 #define MAX_QUEUE 10
 

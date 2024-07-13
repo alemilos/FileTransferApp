@@ -1,9 +1,12 @@
-ARGS = -a 0.0.0.0 -p 1024 -d root
+SERVER_ARGS= -a 0.0.0.0 -p 1024 -d root
+# CFLAGS = -std=c99 -ggdb -Wall -Wextra -pedantic -pedantic-errors
+
+CFLAGS += -ggdb
 
 all: run
 
 run: server 
-	 ./server ${ARGS}
+	 ./server ${SERVER_ARGS}
 
 server: server.o utils.o
 	$(CC) $(LDFLAGS) -o $@ $^
