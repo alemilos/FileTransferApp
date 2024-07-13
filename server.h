@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include "utils.h"
 
 // "Max length to which the queue of pending connections for sockfd may grow".
@@ -42,3 +45,5 @@ void notify_status(int client_sd, int status);
    -1 on failure
 */
 int get_or_create_ft_root_directory(char *path, DIR **dir);
+
+#endif

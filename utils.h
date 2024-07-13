@@ -1,3 +1,6 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 #include <dirent.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -94,3 +97,5 @@ ssize_t xwrite(int client_sd, void *buff, size_t len);
  * Writes the entire buffer to a socket, ensuring all data is sent.
  */
 ssize_t xwrite_all(int client_sd, void *buf, size_t len);
+
+#endif

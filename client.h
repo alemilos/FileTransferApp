@@ -1,3 +1,6 @@
+#ifndef CLIENT_H
+#define CLIENT_H
+
 #include <sys/socket.h>
 
 #include "utils.h"
@@ -26,3 +29,5 @@ void ls_from_server(int client_sd, char *remotepath);
    The status flags are define in "utils.h".
  */
 void receive_status(int client_sd, char *message);
+
+#endif
