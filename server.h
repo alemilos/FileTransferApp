@@ -1,39 +1,44 @@
 #include "utils.h"
 
+// "Max length to which the queue of pending connections for sockfd may grow".
+// listen(2)
 #define MAX_QUEUE 10
 
+/* Flags */
 extern int aflag, pflag, dflag;
 
 /* Handle the connection with the client, retrieving informations such as OP and
  * pathnames*/
 void *handle_connection(void *arg);
 
-/* Meccanismo bloccante, non posso leggere se qualcuno sta scrivendo il file */
+/* Handle a read request by the client. This consists in:
+   - Locking the file so that nobody can write on it.
+   - Sending the file to the client
+   - Release the lock by closing the file descriptor.
+ */
 void handle_read(int client_sd, char *read_path);
 
-/* Meccanismo bloccante, non posso scrivere se qualcuno sta già
-   leggendo/scrivendo sul file */
+/* Handle a write request by the client. This consists in:
+   - Creating the file specified by client if it doesn't exist.
+   - Locking the file so that nobody else can read/write it.
+   - Handling the file transmission from the client.
+   - Release the lock by closing the file descriptor.
+ */
 void handle_write(int client_sd, char *write_path);
 
-/* Meccanismo bloccante, non posso listare se qualcuno sta scrivendo sulla
- * cartella */
+/* Perform an ls -la lookalike on the path specified from the client and
+   send back the output.
+ */
 void handle_ls(int client_sd, char *path);
 
-/* Qui gestisco i blockings mechanisms per la lettura scrittura su un
- * file/cartella */
-void handle_blocks();
-
-/* Se c'è un errore a seguito di un OPERATION del client, egli deve essere
-   notificato I possibili errori:
-   - READ su file non esistente
-   - WRITE con Disk Space non sufficiente
-   - CONNECTION terminated (crash o altro)
-*/
+/* Write a notification status to the user. The statuses are defined in
+ * "utils.h"
+ */
 void notify_status(int client_sd, int status);
 
-/* Check if the path exists, otherwise create it.
+/* Check if the root path exists, otherwise create it.
    Returns:
-   - 0 on success
-   - 1 on failure
+   0 on success
+   -1 on failure
 */
 int get_or_create_ft_root_directory(char *path, DIR **dir);

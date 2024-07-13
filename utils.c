@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 // MEM UTILS
 //////////////////////////////////////////////////////////////////////////////////////////
+
 void *memcheck(const char *name, void *mem) {
   if (!mem) {
     perror(name);
@@ -92,7 +93,6 @@ int ls_la(char *path, char **buffer) {
       continue;
     }
 
-    // Number of links
     unsigned long nlink = info.st_nlink;
 
     struct passwd *pw = getpwuid(info.st_uid);
@@ -104,18 +104,15 @@ int ls_la(char *path, char **buffer) {
     if (pw != NULL) {
       strncpy(uname, pw->pw_name, sizeof(uname) - 1);
     } else {
-      snprintf(uname, MAX_NAME_L, "%u",
-               info.st_uid); // Fallback to UID if username not found
+      snprintf(uname, MAX_NAME_L, "%u", info.st_uid);
     }
 
     if (gr != NULL) {
       strncpy(gname, gr->gr_name, sizeof(gname) - 1);
     } else {
-      snprintf(gname, MAX_NAME_L, "%u",
-               info.st_gid); // Fallback to GID if group name not found
+      snprintf(gname, MAX_NAME_L, "%u", info.st_gid);
     }
 
-    // File size
     unsigned long size = info.st_size;
 
     // Last modification time
@@ -124,7 +121,7 @@ int ls_la(char *path, char **buffer) {
     strftime(mtim, sizeof(mtim), "%b %d %H:%M", timeinfo);
 
     // Align the output
-    // 10 are the permissions characters
+    // the last one is for '\0'
     int toalloc = 1 + PERM_LEN + 1 + ULONG_SLEN + 1 + strlen(uname) + 1 +
                   strlen(gname) + 1 + ULONG_SLEN + 1 + strlen(mtim) + 1 +
                   strlen(d->d_name) + 1 + 1;
@@ -139,8 +136,6 @@ int ls_la(char *path, char **buffer) {
     sprintf(*buffer + strlen(*buffer),
             "%c%c%c%c%c%c%c%c%c%c %2lu %-8s %-8s %8lu %s %s\n", type,
             PERMS(info.st_mode), nlink, uname, gname, size, mtim, d->d_name);
-
-    // Print the formatted line
 
     free(filepath);
   }

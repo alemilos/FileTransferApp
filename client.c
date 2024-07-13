@@ -147,14 +147,14 @@ int main(int argc, char **argv) {
   //////////////
 }
 
-void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
-  if (f_arg_path == NULL) {
+void write_to_server(int client_sd, char *localpath, char *remotepath) {
+  if (localpath == NULL) {
     fprintf(stderr, "Missing File\n");
     exit(EXIT_FAILURE);
   }
 
-  if (access(f_arg_path, R_OK) != 0) {
-    perror(f_arg_path);
+  if (access(localpath, R_OK) != 0) {
+    perror(localpath);
     exit(EXIT_FAILURE);
   }
 
@@ -165,20 +165,20 @@ void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
 
   if (!oflag) {
     // If -o not specified, -f filepath will be used to read file on server
-    o_arg_path = xstrdup(f_arg_path);
+    remotepath = xstrdup(localpath);
   }
 
   // Send filepath/filename to server
-  write(client_sd, o_arg_path, BUFSIZE);
+  write(client_sd, remotepath, BUFSIZE);
 
   // Check file exists on server
   receive_status(client_sd, "input file");
 
   // Send file size
   struct stat obj;
-  stat(f_arg_path, &obj);
+  stat(localpath, &obj);
 
-  int fd = open(f_arg_path, O_RDONLY);
+  int fd = open(localpath, O_RDONLY);
   int f_size = obj.st_size;
 
   // Tell the server the file size
@@ -188,8 +188,8 @@ void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   sendfile(client_sd, fd, NULL, f_size);
 }
 
-void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
-  if (f_arg_path == NULL) {
+void read_from_server(int client_sd, char *remotepath, char *localpath) {
+  if (remotepath == NULL) {
     fprintf(stderr, "Missing File\n");
     exit(EXIT_FAILURE);
   }
@@ -201,15 +201,15 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
 
   if (!oflag) {
     // If -o not specified, -f filepath will be used to write locally.
-    o_arg_path = xstrdup(f_arg_path);
+    localpath = xstrdup(remotepath);
   }
 
-  char *o_arg_path_cpy = xstrdup(o_arg_path);
+  char *localpath_cpy = xstrdup(localpath);
 
   // Send filepath/filename to server
-  write(client_sd, f_arg_path, BUFSIZE);
+  write(client_sd, remotepath, BUFSIZE);
 
-  char *dirpath = dirname(o_arg_path_cpy);
+  char *dirpath = dirname(localpath_cpy);
 
   // If the -o filepath doesn't exist, create it
   if (mkdir_p(dirpath) < 0) {
@@ -218,7 +218,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   }
 
   int fd;
-  if ((fd = open(o_arg_path, O_CREAT | O_WRONLY, FILEACC)) == -1) {
+  if ((fd = open(localpath, O_CREAT | O_WRONLY, FILEACC)) == -1) {
     perror("open");
     exit(EXIT_FAILURE);
   }
@@ -233,7 +233,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   // Get File data
   char *data;
 
-  FILE *fp = fopen(o_arg_path, "w");
+  FILE *fp = fopen(localpath, "w");
 
   data = xmalloc(f_size + 1);
 
@@ -247,13 +247,13 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
 
   //////////////
   // Free Memory
-  free(o_arg_path_cpy);
+  free(localpath_cpy);
   free(data);
   //////////////
 }
 
-void ls_from_server(int client_sd, char *f_arg_path) {
-  if (f_arg_path == NULL) {
+void ls_from_server(int client_sd, char *remotepath) {
+  if (remotepath == NULL) {
     fprintf(stderr, "Missing File\n");
     exit(EXIT_FAILURE);
   }
@@ -264,7 +264,7 @@ void ls_from_server(int client_sd, char *f_arg_path) {
   receive_status(client_sd, "op");
 
   // Send filepath/filename to server
-  write(client_sd, f_arg_path, BUFSIZE);
+  write(client_sd, remotepath, BUFSIZE);
 
   // Check ls can be performed on given -f path
   receive_status(client_sd, "path opened");

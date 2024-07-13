@@ -53,22 +53,28 @@ PERM((b)) --> 111 110 101
 
 #define PERMS(b) PERM((b) >> 6), PERM((b) >> 3), PERM(b)
 
+/* Wrapper of all the xFn that manages memory. This function handles errors on
+ * failure and returns the mem pointer on success*/
 void *memcheck(const char *name, void *mem);
 
+/* Wrapper of malloc */
 void *xmalloc(size_t size);
 
+/* Wrapper of realloc*/
 void *xrealloc(void *old, size_t size);
 
-/* Wrapper of strdup -> Allocate and return string */
+/* Wrapper of strdup */
 void *xstrdup(const char *s);
 
 /* Simulate the mkdir -p command to create nested directories from the path
-   Return 0 on success,
+   Returns:
+   0 on success,
    -1 on failure. */
 int mkdir_p(char *path);
 
 /* Simulate the ls -la command and fill a buffer with the output .
-   Returns 0 on success.
+   Returns:
+   0 on success,
    1 on failure.
 */
 int ls_la(char *path, char **buffer);

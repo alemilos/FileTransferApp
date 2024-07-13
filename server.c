@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  if (get_or_create_ft_root_directory(ft_root_dir_pathname, &ft_root_dir)) {
+  if (get_or_create_ft_root_directory(ft_root_dir_pathname, &ft_root_dir) < 0) {
     fprintf(stderr, "cannot set %s as root directory\n", ft_root_dir_pathname);
     exit(EXIT_FAILURE);
   } else {
@@ -116,9 +116,9 @@ int main(int argc, char **argv) {
 }
 
 int get_or_create_ft_root_directory(char *path, DIR **dir) {
-  // If path == NULL || "" -> Invalid path, return 1
+  // If path == NULL || "" -> Invalid path, return -1
   if (path == NULL || dir == NULL) {
-    return 1;
+    return -1;
   }
 
   // Try to open directory
@@ -130,7 +130,7 @@ int get_or_create_ft_root_directory(char *path, DIR **dir) {
       *dir = opendir(path);
       return 0;
     } else {
-      return 1;
+      return -1;
     }
   }
   return 0;
