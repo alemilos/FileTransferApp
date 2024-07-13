@@ -73,7 +73,6 @@ int ls_la(char *path, char **buffer) {
 
   DIR *dir = opendir(path);
   if (dir == NULL) {
-    perror("ls");
     return -1;
   }
 
@@ -126,9 +125,9 @@ int ls_la(char *path, char **buffer) {
 
     // Align the output
     // 10 are the permissions characters
-    int toalloc = 1 + 1 + ULONG_SLEN + 1 + strlen(uname) + 1 + strlen(gname) +
-                  1 + ULONG_SLEN + 1 + strlen(mtim) + 1 + strlen(d->d_name) +
-                  1 + 1;
+    int toalloc = 1 + PERM_LEN + 1 + ULONG_SLEN + 1 + strlen(uname) + 1 +
+                  strlen(gname) + 1 + ULONG_SLEN + 1 + strlen(mtim) + 1 +
+                  strlen(d->d_name) + 1 + 1;
 
     if (!*buffer) {
       *buffer = xmalloc(toalloc);
@@ -137,8 +136,9 @@ int ls_la(char *path, char **buffer) {
       *buffer = xrealloc(*buffer, strlen(*buffer) + toalloc);
     }
 
-    sprintf(*buffer + strlen(*buffer), "%c %2lu %-8s %-8s %8lu %s %s\n", type,
-            nlink, uname, gname, size, mtim, d->d_name);
+    sprintf(*buffer + strlen(*buffer),
+            "%c%c%c%c%c%c%c%c%c%c %2lu %-8s %-8s %8lu %s %s\n", type,
+            PERMS(info.st_mode), nlink, uname, gname, size, mtim, d->d_name);
 
     // Print the formatted line
 

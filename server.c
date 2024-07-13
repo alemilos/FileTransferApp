@@ -291,19 +291,30 @@ void handle_ls(int client_sd, char *path) {
   char *fullpath = xmalloc(strlen(path) + strlen(ft_root_dir_pathname) + 2);
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, path);
 
+  char *buffer = NULL;
   if (access(fullpath, R_OK) == 0) {
+
+    if (ls_la(fullpath, &buffer) < 0) {
+      notify_status(client_sd, SERVERERROR);
+      goto Exit;
+    }
+
     notify_status(client_sd, OK);
 
-    printf("Listing %s\n", fullpath);
-    char *buffer;
+    // Send buf_siz to client
+    int buf_siz = strlen(buffer);
+    write(client_sd, &buf_siz, sizeof(int));
 
-    ls_la(fullpath, &buffer);
+    // Send the ls output to the client
+    write(client_sd, buffer, buf_siz);
 
-    free(buffer);
   } else {
     notify_status(client_sd, NOTFOUND);
   }
 
+Exit:
+  // Cleanup
+  free(buffer);
   free(fullpath);
 }
 

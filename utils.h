@@ -23,10 +23,35 @@
 
 /* Constants types */
 #define ULONG_SLEN 19
+#define PERM_LEN 9
 
 /* Bufsizes */
 #define BUFSIZE 1024
 #define MAX_NAME_L 256
+
+/* Macro Permissions  */
+// 4 r
+// 2 w
+// 1 x
+
+/*
+Example of PERMS MACRO
+b = 765
+b = 7 6 5 (root user other)
+b = 111 110 101
+
+PERM((b)>>6) --> 111
+PERM((b)>>3) --> 111 110
+PERM((b)) --> 111 110 101
+
+111 110 101 & 000 000 100 -> 100 -> r
+111 110 101 & 000 000 010 -> 000 -> -
+111 110 101 & 000 000 001 -> 001 -> x
+*/
+#define PERM(b)                                                                \
+  (((b) & 4) ? 'r' : '-'), (((b) & 2) ? 'w' : '-'), (((b) & 1) ? 'x' : '-')
+
+#define PERMS(b) PERM((b) >> 6), PERM((b) >> 3), PERM(b)
 
 void *memcheck(const char *name, void *mem);
 

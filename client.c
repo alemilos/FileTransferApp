@@ -266,8 +266,21 @@ void ls_from_server(int client_sd, char *f_arg_path) {
   // Send filepath/filename to server
   write(client_sd, f_arg_path, BUFSIZE);
 
-  // Check file exists on server
+  // Check ls can be performed on given -f path
   receive_status(client_sd, "path opened");
+
+  // Get buffer size
+  int ls_size;
+  recv(client_sd, &ls_size, sizeof(int), 0);
+
+  // Recv the ls output from the server
+  char *ls_output = xmalloc(ls_size);
+  if (recv(client_sd, ls_output, ls_size, 0) < 0) {
+    perror("");
+    return;
+  }
+
+  printf("Server says\n%s", ls_output);
 }
 
 void receive_status(int client_sd, char *message) {
