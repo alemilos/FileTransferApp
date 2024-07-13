@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   char *f_arg_path = NULL;
   char *o_arg_path = NULL;
 
-  while ((opt = getopt(argc, argv, "a:p:drwlhf:o:")) != EOF) {
+  while ((opt = getopt(argc, argv, "a:p:drwlhf:o:")) != -1) {
     char *eptr;
     switch (opt) {
     case 'a':
@@ -143,20 +143,12 @@ int main(int argc, char **argv) {
     ls_from_server(client_sd, f_arg_path);
   }
 
-  /*
-  ********************************************************************************
-  ******************************** I want to break FREE.
-  ********************************************************************************
-  */
-  if (server_address != NULL) {
-    free(server_address);
-  }
-  if (f_arg_path != NULL) {
-    free(f_arg_path);
-  }
-  if (o_arg_path != NULL) {
-    free(o_arg_path);
-  }
+  //////////////
+  // Free Memory
+  free(server_address);
+  free(f_arg_path);
+  free(o_arg_path);
+  //////////////
 }
 
 void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
@@ -222,7 +214,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   write(client_sd, f_arg_path, BUFSIZE);
 
   // If the -o filepath/filename doesn't exist, create it
-  if (mkdir_r(o_arg_path)) {
+  if (!mkdir_p(o_arg_path)) {
     perror("creating file");
     exit(EXIT_FAILURE);
   }
@@ -257,12 +249,8 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
 
   //////////////
   // Free Memory
-  if (o_arg_path_cpy != NULL) {
-    free(o_arg_path_cpy);
-  }
-  if (data != NULL) {
-    free(data);
-  }
+  free(o_arg_path_cpy);
+  free(data);
   //////////////
 }
 

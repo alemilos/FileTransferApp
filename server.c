@@ -6,10 +6,12 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/sendfile.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -28,7 +30,7 @@ int main(int argc, char **argv) {
   DIR *ft_root_dir = NULL;
   char *server_address = NULL;
 
-  while ((opt = getopt(argc, argv, "a:p:d:h")) != EOF) {
+  while ((opt = getopt(argc, argv, "a:p:d:h")) != -1) {
     char *eptr;
     switch (opt) {
     case 'a':
@@ -105,27 +107,19 @@ int main(int argc, char **argv) {
 
   while ((client_sd = accept(server_sd, &client, &size_sockaddr)) >= 0) {
     printf("Socket %d connected\n", client_sd);
-    handle_connection(client_sd);
-    printf("Handler completed\n");
+
+    pthread_t tid;
+
+    pthread_create(&tid, NULL, handle_connection,
+                   (void *)((size_t)((unsigned int)client_sd)));
   }
 
   printf("Server closed.\n");
   close(server_sd);
 
-  /*
-   ********************************************************************************
-   ******************************** I want to break FREE.
-   ********************************************************************************
-   */
-  if (server_address != NULL) {
-    free(server_address);
-  }
-  if (ft_root_dir_pathname != NULL) {
-    free(ft_root_dir_pathname);
-  }
-  if (ft_root_dir != NULL) {
-    free(ft_root_dir);
-  }
+  free(server_address);
+  free(ft_root_dir_pathname);
+  free(ft_root_dir);
 }
 
 int get_or_create_ft_root_directory(char *path, DIR **dir) {
@@ -146,19 +140,21 @@ int get_or_create_ft_root_directory(char *path, DIR **dir) {
       return 1;
     }
   }
-
   return 0;
 }
 
-void handle_connection(int client_sd) {
+void *handle_connection(void *arg) {
   char op;
+
+  int client_sd = (int)((unsigned int)((size_t)arg));
+
   recv(client_sd, &op, sizeof(char), 0);
 
   // 1. Find the OP that client wants to perform.
   // char op = request[0];
   if (op != READ && op != WRITE && op != LIST) {
     notify_status(client_sd, BADREQ);
-    return;
+    return NULL;
   } else {
     notify_status(client_sd, OK);
   }
@@ -176,6 +172,9 @@ void handle_connection(int client_sd) {
   if (op == LIST) {
     handle_ls(client_sd, filepath);
   }
+
+  close(client_sd);
+  return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -187,12 +186,13 @@ void handle_write(int client_sd, char *write_path) {
 
   char *fullpath_cpy = xstrdup(fullpath);
 
-  if (access(fullpath, R_OK) == 0) {
+  int fd = open(fullpath, O_WRONLY);
+  if (fd >= 0) {
     notify_status(client_sd, OK);
   } else {
     // The file needs to be created, so client can write on it.
 
-    if (mkdir_r(fullpath) == 0) {
+    if (mkdir_p(fullpath)) {
       // Creation success
       notify_status(client_sd, CREATED);
 
@@ -225,12 +225,8 @@ void handle_write(int client_sd, char *write_path) {
 
   //////////////
   // Free Memory
-  if (fullpath_cpy != NULL) {
-    free(fullpath_cpy);
-  }
-  if (data != NULL) {
-    free(data);
-  }
+  free(fullpath_cpy);
+  free(data);
   //////////////
 }
 
@@ -241,23 +237,30 @@ void handle_read(int client_sd, char *read_path) {
   char fullpath[BUFSIZE];
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, read_path);
 
-  if (access(fullpath, R_OK) == 0) {
-    notify_status(client_sd, OK);
-
-    struct stat obj;
-    stat(fullpath, &obj);
-
-    int fd = open(fullpath, O_RDONLY);
-    int f_size = obj.st_size;
-
-    // Tell the client the file size
-    write(client_sd, &f_size, sizeof(int));
-
-    sendfile(client_sd, fd, NULL, f_size);
-  } else {
+  int fd = open(fullpath, O_RDONLY);
+  if (fd < 0) {
     // the file doesn't exist or cannot be accessed. Client Cannot read.
     notify_status(client_sd, NOTFOUND);
+    return;
   }
+
+  if (flock(fd, LOCK_SH) == -1) {
+  }
+
+  notify_status(client_sd, OK);
+
+  struct stat obj;
+  stat(fullpath, &obj);
+
+  int f_size = obj.st_size;
+
+  // Send the file size to the client
+  write(client_sd, &f_size, sizeof(int));
+
+  // Send data
+  sendfile(client_sd, fd, NULL, f_size);
+
+  close(fd);
 }
 
 //////////////////////////////////////////////////////////////////////

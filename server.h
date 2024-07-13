@@ -7,7 +7,7 @@ extern int aflag, pflag, dflag;
 
 /* Handle the connection with the client, retrieving informations such as OP and
  * pathnames*/
-void handle_connection(int client_sd);
+void *handle_connection(void *arg);
 
 /* Meccanismo bloccante, non posso leggere se qualcuno sta scrivendo il file */
 void handle_read(int client_sd, char *read_path);

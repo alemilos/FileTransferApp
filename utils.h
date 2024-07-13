@@ -29,9 +29,9 @@ void *xrealloc(void *old, size_t size);
 void *xstrdup(const char *s);
 
 /* Simulate the mkdir -p command to create nested directories from the path
-   Return 0 on success,
-   1 on failure. */
-int mkdir_r(char *path);
+   Return 1 on success,
+   0 on failure. */
+int mkdir_p(char *path);
 
 /* Extract the filename from the path
    e.g: d1/d2/.../dn/file

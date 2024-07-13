@@ -50,9 +50,9 @@ void file_from_path(char *path, char **filename) {
   path[start_ind] = '\0';
 }
 
-int mkdir_r(char *path) {
+int mkdir_p(char *path) {
   if (path == NULL) {
-    return 1;
+    return 0;
   }
 
   if (access(path, R_OK) != 0) {
@@ -77,26 +77,31 @@ int mkdir_r(char *path) {
         sprintf(leftpath, "%s", tok);
       }
       if (access(leftpath, R_OK) != 0) {
-        mkdir(leftpath, FULLACCESS);
+        if (mkdir(leftpath, FULLACCESS) == -1) {
+          free(leftpath);
+          free(pathcpy);
+          free(filename);
+
+          return 0;
+        }
       }
       tok = NULL;
     }
-    free(leftpath);
 
     int fd = open(pathcpy, O_CREAT | O_RDWR, FULLACCESS);
 
     path = strdup(pathcpy); // reset path to original
-    free(pathcpy);
-    free(filename);
 
     if (fd != -1) {
       close(fd);
     }
 
-    return 0;
+    free(pathcpy);
+    free(filename);
+    free(leftpath);
   };
 
-  return 0;
+  return 1;
 }
 
 void list_files(char *path) {}
