@@ -109,8 +109,6 @@ int main(int argc, char **argv) {
                    (void *)((size_t)((unsigned int)client_sd)));
   }
 
-  printf("Server Exit.\n");
-
   close(server_sd);
   free(server_address);
   free(ft_root_dir_pathname);
@@ -288,7 +286,7 @@ Exit:
 // Handle List
 //////////////////////////////////////////////////////////////////////
 void handle_ls(int client_sd, char *path) {
-  char *fullpath = xmalloc(strlen(path) + strlen(ft_root_dir_pathname) + 2);
+  char fullpath[BUFSIZE];
   sprintf(fullpath, "%s/%s", ft_root_dir_pathname, path);
 
   char *buffer = NULL;
@@ -315,7 +313,6 @@ void handle_ls(int client_sd, char *path) {
 Exit:
   // Cleanup
   free(buffer);
-  free(fullpath);
 }
 
 void notify_status(int client_sd, int status) {
