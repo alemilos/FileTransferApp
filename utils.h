@@ -8,7 +8,8 @@
 #define WRITE 'w'
 #define LIST 'l'
 
-#define FULLACCESS 0777
+#define DIRACC 0770
+#define FILEACC 0660
 
 /* Statuses */
 #define OK 200
@@ -32,8 +33,8 @@ void *xrealloc(void *old, size_t size);
 void *xstrdup(const char *s);
 
 /* Simulate the mkdir -p command to create nested directories from the path
-   Return 1 on success,
-   0 on failure. */
+   Return 0 on success,
+   -1 on failure. */
 int mkdir_p(char *path);
 
 /* Extract the filename from the path
@@ -43,4 +44,5 @@ int mkdir_p(char *path);
    */
 void file_from_path(char *path, char **filename);
 
+/* Simulate the ls -la command and fill a buffer with the output */
 void list_files(char *path);

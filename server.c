@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
   }
 
   if (get_or_create_ft_root_directory(ft_root_dir_pathname, &ft_root_dir)) {
-    perror("cannot set ft_root_dir");
+    fprintf(stderr, "cannot set %s as root directory\n", ft_root_dir_pathname);
     exit(EXIT_FAILURE);
   } else {
     printf("%s set as Root Directory\n", ft_root_dir_pathname);
@@ -114,9 +115,9 @@ int main(int argc, char **argv) {
                    (void *)((size_t)((unsigned int)client_sd)));
   }
 
-  printf("Server closed.\n");
-  close(server_sd);
+  printf("Server Exit.\n");
 
+  close(server_sd);
   free(server_address);
   free(ft_root_dir_pathname);
   free(ft_root_dir);
@@ -133,7 +134,7 @@ int get_or_create_ft_root_directory(char *path, DIR **dir) {
 
   if (ENOENT == errno) {
     // Try to create it
-    if (mkdir(path, FULLACCESS) == 0) {
+    if (mkdir(path, DIRACC) == 0) {
       *dir = opendir(path);
       return 0;
     } else {
@@ -191,22 +192,35 @@ void handle_write(int client_sd, char *write_path) {
     notify_status(client_sd, OK);
   } else {
     // The file needs to be created, so client can write on it.
-    printf("REFACTOR MKDIR_P CON DIRNAME");
-    if (mkdir_p(fullpath)) {
+    char *prefixpath = dirname(fullpath_cpy);
 
-      // TODO: Creare il file
-      // int fd = open(path, O_WRONLY|O_CREAT, 0660);
-      // flock(fd, LOCK_EX)
-      // ftrunc(fd, 0)
-      // write from client ()
-      // close(fd)
-      printf("CREARE FILE DA QUI");
+    if (mkdir_p(prefixpath) == 0) {
+
+      fd = open(fullpath, O_WRONLY | O_CREAT, FILEACC);
+      if (fd < 0) {
+        notify_status(client_sd, SERVERERROR);
+        return;
+      }
+
+      if (flock(fd, LOCK_EX) == -1) {
+        notify_status(client_sd, LOCKERR);
+        close(fd);
+        return;
+      }
+
+      if (ftruncate(fd, 0)) {
+        notify_status(client_sd, SERVERERROR);
+        close(fd);
+        return;
+      }
+
       // Creation success
       notify_status(client_sd, CREATED);
 
     } else {
       // Creation fail
       notify_status(client_sd, SERVERERROR);
+      return;
     }
   }
 
@@ -217,7 +231,7 @@ void handle_write(int client_sd, char *write_path) {
   // Get File data
   char *data;
 
-  FILE *fp = fopen(fullpath_cpy, "w");
+  FILE *fp = fopen(fullpath, "w");
 
   data = xmalloc(f_size + 1);
 
@@ -232,6 +246,7 @@ Exit:
   if (fp != NULL) {
     fclose(fp);
   }
+  close(fd);
   free(fullpath_cpy);
   free(data);
   //////////////

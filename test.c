@@ -1,29 +1,53 @@
-#include <fcntl.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/file.h>
-#include <unistd.h>
+// #include <errno.h>
+// #include <libgen.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include <sys/stat.h>
 
-void my_write() {}
+// int mkdir_p(char *path) {
+//   if (path == NULL || strcmp(path, ".") == 0) {
+//     printf("End of Path: %s\n", path);
+//     return 0;
+//   }
 
-void my_read(int socket) {}
+//   if (mkdir(path, 0775) < 0) {
+//     if (errno == EEXIST) {
+//       return 0; // Directory already exists
+//     }
+//     char *path_cpy = strdup(path);
+//     char *prefixpath = dirname(path_cpy);
+//     printf("pathcpy: %s\n", path_cpy);
+//     printf("prefixpath: %s\n", prefixpath);
 
-void handle_conn(void *sd) {
-  int socket = (int)((unsigned int)((size_t)sd));
+//     if (mkdir_p(prefixpath) == 0) {
 
-  printf("%d\n", socket);
+//       printf("Path is:%s\n", path);
+//       if (mkdir(path, 0775) == 0) {
+//         free(path_cpy);
+//         return 0;
+//       }
+//     }
 
-  my_read(socket);
-}
+//     free(path_cpy);
+//     return -1;
+//   }
 
-int main() {
-  for (size_t i = 0; i < 10; i++) {
-    pthread_t tid;
+//   return 0;
+// }
 
-    int socket = i;
-    pthread_create(&tid, NULL, (void *)handle_conn,
-                   (void *)((size_t)((unsigned int)socket)));
-  }
-  sleep(1);
-}
+// int main() {
+//   char buffer[1024] = "a/b/c/d/e";
+
+//   char *buf_cpy = strdup(buffer);
+//   char *dirpath = dirname(buf_cpy);
+
+//   if (mkdir_p(dirpath)) {
+//     printf("Creating file: %s\n", buffer);
+
+//     return 0;
+//   } else {
+//     perror("");
+//     return 1;
+//   }
+// }

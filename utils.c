@@ -1,5 +1,3 @@
-#include <cerrno>
-#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,43 +28,18 @@ void *xstrdup(const char *s) { return memcheck("strdup", strdup(s)); }
 //////////////////////////////////////////////////////////////////////////////////////////
 // FS Utils
 //////////////////////////////////////////////////////////////////////////////////////////
-void file_from_path(char *path, char **filename) {
-  int start_ind = strlen(path);
-  for (int i = start_ind; i > -1; i--) {
-    start_ind = i;
-    if (path[i] == '/') {
-      break;
-    }
-  }
-
-  size_t filename_len = strlen(path) - start_ind;
-  *filename = xmalloc(filename_len);
-
-  size_t ind = 0;
-  for (size_t i = start_ind + 1; i < strlen(path); i++) {
-    (*filename)[ind++] = path[i];
-  }
-  (*filename)[ind] = '\0';
-
-  // Remove the filename from the path
-  path[start_ind] = '\0';
-}
 
 int mkdir_p(char *path) {
   if (path == NULL) {
     return 0;
   }
-
-  int fd = open(path, O_WRONLY);
-  if (errno != EEXIST) {
-    // Path Must be created
+  printf("PATH: %s\n", path);
+  if (access(path, R_OK) != 0) {
+    // Path do not exist, create it.
     char *pathcpy = xstrdup(path);
-    char *filename = NULL;
-
-    // Remove the filename from path
-    file_from_path(path, &filename);
-
-    // If path is NULL or empty return (base case)
+    if (pathcpy == NULL) {
+      return -1;
+    }
 
     char *leftpath = xmalloc(strlen(path) + 1);
     leftpath[0] = '\0';
@@ -79,33 +52,19 @@ int mkdir_p(char *path) {
         sprintf(leftpath, "%s", tok);
       }
       if (access(leftpath, R_OK) != 0) {
-        if (mkdir(leftpath, FULLACCESS) == -1) {
-          free(leftpath);
-          free(pathcpy);
-          free(filename);
-
-          return 0;
+        if (mkdir(leftpath, DIRACC) < 0) {
+          return -1;
         }
       }
       tok = NULL;
     }
 
-    int fd = open(pathcpy, O_CREAT | O_RDWR, FULLACCESS);
-
-    path = strdup(pathcpy); // reset path to original
-
-    if (fd != -1) {
-      close(fd);
-    }
-
+    // Cleanup
     free(pathcpy);
-    free(filename);
     free(leftpath);
-  } else {
-    return 0;
   }
 
-  return 1;
+  return 0;
 }
 
 void list_files(char *path) {}

@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -176,7 +177,7 @@ void write_to_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   write(client_sd, o_arg_path, BUFSIZE);
 
   // Check file exists on server
-  receive_status(client_sd, "resource");
+  receive_status(client_sd, "input file");
 
   // Send file size
   struct stat obj;
@@ -213,14 +214,16 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   // Send filepath/filename to server
   write(client_sd, f_arg_path, BUFSIZE);
 
-  // If the -o filepath/filename doesn't exist, create it
-  if (!mkdir_p(o_arg_path)) {
+  char *dirpath = dirname(o_arg_path_cpy);
+
+  // If the -o filepath doesn't exist, create it
+  if (mkdir_p(dirpath) < 0) {
     perror("creating file");
     exit(EXIT_FAILURE);
   }
 
   int fd;
-  if ((fd = open(o_arg_path_cpy, O_RDWR, FULLACCESS)) == -1) {
+  if ((fd = open(o_arg_path, O_CREAT | O_WRONLY, FILEACC)) == -1) {
     perror("open");
     exit(EXIT_FAILURE);
   }
@@ -235,7 +238,7 @@ void read_from_server(int client_sd, char *f_arg_path, char *o_arg_path) {
   // Get File data
   char *data;
 
-  FILE *fp = fopen(o_arg_path_cpy, "w");
+  FILE *fp = fopen(o_arg_path, "w");
 
   data = xmalloc(f_size + 1);
 
@@ -276,28 +279,16 @@ void receive_status(int client_sd, char *message) {
   int status;
   recv(client_sd, &status, sizeof(int), 0);
 
-  if (status == OK) {
-    fprintf(stdout, "%d: %s\n", OK, message);
+  // stdout statuses (no exit)
+  if (status == OK || status == CREATED) {
+    fprintf(stdout, "%d: %s\n", status, message);
     return;
   }
-  if (status == CREATED) {
-    fprintf(stdout, "%d: %s\n", CREATED, message);
-    return;
-  }
-  if (status == BADREQ) {
-    fprintf(stderr, "%d: %s\n", BADREQ, message);
-    exit(EXIT_FAILURE);
-  }
-  if (status == NOTFOUND) {
-    fprintf(stderr, "%d: %s\n", NOTFOUND, message);
-    exit(EXIT_FAILURE);
-  }
-  if (status == SERVERERROR) {
-    fprintf(stderr, "%d: %s\n", SERVERERROR, message);
-    exit(EXIT_FAILURE);
-  }
-  if (status == LOCKERR) {
-    fprintf(stderr, "%d: %s\n", LOCKERR, message);
+
+  // stderr statuses (exit)
+  if (status == BADREQ || status == NOTFOUND || status == SERVERERROR ||
+      status == LOCKERR || status == STATERR) {
+    fprintf(stderr, "%d: %s\n", status, message);
     exit(EXIT_FAILURE);
   }
 }
