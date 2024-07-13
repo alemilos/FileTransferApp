@@ -78,3 +78,7 @@ int mkdir_p(char *path);
    1 on failure.
 */
 int ls_la(char *path, char **buffer);
+
+ssize_t xrecv(int client_sd, void *buff, size_t len);
+ssize_t xwrite(int client_sd, void *buff, size_t len);
+ssize_t xwrite_all(int client_sd, void *buf, size_t len);

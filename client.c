@@ -159,7 +159,7 @@ void write_to_server(int client_sd, char *localpath, char *remotepath) {
   }
 
   char op = WRITE;
-  write(client_sd, &op, sizeof(char));
+  xwrite_all(client_sd, &op, sizeof(char));
 
   receive_status(client_sd, "op");
 
@@ -169,7 +169,7 @@ void write_to_server(int client_sd, char *localpath, char *remotepath) {
   }
 
   // Send filepath/filename to server
-  write(client_sd, remotepath, BUFSIZE);
+  xwrite_all(client_sd, remotepath, BUFSIZE);
 
   // Check file exists on server
   receive_status(client_sd, "input file");
@@ -182,7 +182,7 @@ void write_to_server(int client_sd, char *localpath, char *remotepath) {
   int f_size = obj.st_size;
 
   // Tell the server the file size
-  write(client_sd, &f_size, sizeof(int));
+  xwrite_all(client_sd, &f_size, sizeof(int));
 
   // send file data
   sendfile(client_sd, fd, NULL, f_size);
@@ -195,7 +195,7 @@ void read_from_server(int client_sd, char *remotepath, char *localpath) {
   }
 
   char op = READ;
-  write(client_sd, &op, sizeof(char));
+  xwrite_all(client_sd, &op, sizeof(char));
 
   receive_status(client_sd, "op");
 
@@ -207,7 +207,7 @@ void read_from_server(int client_sd, char *remotepath, char *localpath) {
   char *localpath_cpy = xstrdup(localpath);
 
   // Send filepath/filename to server
-  write(client_sd, remotepath, BUFSIZE);
+  xwrite_all(client_sd, remotepath, BUFSIZE);
 
   char *dirpath = dirname(localpath_cpy);
 
@@ -228,7 +228,7 @@ void read_from_server(int client_sd, char *remotepath, char *localpath) {
 
   // Check File Size
   int f_size;
-  recv(client_sd, &f_size, sizeof(int), 0);
+  xrecv(client_sd, &f_size, sizeof(int));
 
   // Get File data
   char *data;
@@ -237,7 +237,7 @@ void read_from_server(int client_sd, char *remotepath, char *localpath) {
 
   data = xmalloc(f_size + 1);
 
-  int t = recv(client_sd, data, f_size, 0);
+  int t = xrecv(client_sd, data, f_size);
   data[t] = '\0';
 
   fputs(data, fp);
@@ -259,23 +259,23 @@ void ls_from_server(int client_sd, char *remotepath) {
   }
 
   char op = LIST;
-  write(client_sd, &op, sizeof(char));
+  xwrite_all(client_sd, &op, sizeof(char));
 
   receive_status(client_sd, "op");
 
   // Send filepath/filename to server
-  write(client_sd, remotepath, BUFSIZE);
+  xwrite_all(client_sd, remotepath, BUFSIZE);
 
   // Check ls can be performed on given -f path
   receive_status(client_sd, "path opened");
 
   // Get buffer size
   int ls_size;
-  recv(client_sd, &ls_size, sizeof(int), 0);
+  xrecv(client_sd, &ls_size, sizeof(int));
 
   // Recv the ls output from the server
   char *ls_output = xmalloc(ls_size);
-  if (recv(client_sd, ls_output, ls_size, 0) < 0) {
+  if (xrecv(client_sd, ls_output, ls_size) < 0) {
     perror("");
     return;
   }
@@ -285,7 +285,7 @@ void ls_from_server(int client_sd, char *remotepath) {
 
 void receive_status(int client_sd, char *message) {
   int status;
-  recv(client_sd, &status, sizeof(int), 0);
+  xrecv(client_sd, &status, sizeof(int));
 
   // stdout statuses (no exit)
   if (status == OK || status == CREATED) {

@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <libgen.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,6 +20,7 @@ int aflag, pflag, dflag;
 char *ft_root_dir_pathname = NULL;
 
 int main(int argc, char **argv) {
+  signal(SIGPIPE, SIG_IGN);
 
   int opt;
   uint16_t server_port;
@@ -141,7 +143,7 @@ void *handle_connection(void *arg) {
 
   int client_sd = (int)((unsigned int)((size_t)arg));
 
-  recv(client_sd, &op, sizeof(char), 0);
+  xrecv(client_sd, &op, sizeof(char));
 
   // 1. Find the OP that client wants to perform.
   // char op = request[0];
@@ -153,7 +155,7 @@ void *handle_connection(void *arg) {
   }
 
   char filepath[BUFSIZE];
-  recv(client_sd, filepath, BUFSIZE, 0);
+  xrecv(client_sd, filepath, BUFSIZE);
 
   // 3. Call the handler for that OP.
   if (op == READ) {
@@ -216,7 +218,7 @@ void handle_write(int client_sd, char *write_path) {
 
   // Receive the file_size to write.
   int f_size;
-  recv(client_sd, &f_size, sizeof(int), 0);
+  xrecv(client_sd, &f_size, sizeof(int));
 
   // Get File data
   char *data;
@@ -225,7 +227,7 @@ void handle_write(int client_sd, char *write_path) {
 
   data = xmalloc(f_size + 1);
 
-  int t = recv(client_sd, data, f_size, 0);
+  int t = xrecv(client_sd, data, f_size);
   data[t] = '\0';
 
   fputs(data, fp);
@@ -272,7 +274,7 @@ void handle_read(int client_sd, char *read_path) {
   int f_size = obj.st_size;
 
   // Send the file size to the client
-  write(client_sd, &f_size, sizeof(int));
+  xwrite_all(client_sd, &f_size, sizeof(int));
 
   // Send data
   sendfile(client_sd, fd, NULL, f_size);
@@ -301,10 +303,10 @@ void handle_ls(int client_sd, char *path) {
 
     // Send buf_siz to client
     int buf_siz = strlen(buffer);
-    write(client_sd, &buf_siz, sizeof(int));
+    xwrite_all(client_sd, &buf_siz, sizeof(int));
 
     // Send the ls output to the client
-    write(client_sd, buffer, buf_siz);
+    xwrite_all(client_sd, buffer, buf_siz);
 
   } else {
     notify_status(client_sd, NOTFOUND);
@@ -316,5 +318,5 @@ Exit:
 }
 
 void notify_status(int client_sd, int status) {
-  write(client_sd, &status, sizeof(int));
+  xwrite_all(client_sd, &status, sizeof(int));
 }

@@ -1,7 +1,9 @@
+#include <errno.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -35,7 +37,6 @@ int mkdir_p(char *path) {
   if (path == NULL) {
     return 0;
   }
-  printf("PATH: %s\n", path);
   if (access(path, R_OK) != 0) {
     // Path do not exist, create it.
     char *pathcpy = xstrdup(path);
@@ -146,4 +147,35 @@ int ls_la(char *path, char **buffer) {
   }
 
   return 0;
+}
+
+ssize_t xrecv(int client_sd, void *buff, size_t len) {
+  ssize_t ret;
+  while ((ret = recv(client_sd, buff, len, MSG_NOSIGNAL)) == -1) {
+    if (errno != EINTR)
+      return ret;
+  }
+  return ret;
+}
+
+ssize_t xwrite(int client_sd, void *buf, size_t len) {
+  ssize_t ret;
+  while ((ret = write(client_sd, buf, len)) == -1) {
+    if (errno != EINTR)
+      return ret;
+  }
+  return ret;
+}
+
+ssize_t xwrite_all(int client_sd, void *buf, size_t len) {
+  size_t nwrote = 0;
+  while (len > 0) {
+    ssize_t ret = xwrite(client_sd, buf, len);
+    if (ret == -1)
+      return -1;
+    nwrote += (size_t)ret;
+    buf += (size_t)ret;
+    len -= (size_t)ret;
+  }
+  return (ssize_t)nwrote;
 }
