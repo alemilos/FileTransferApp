@@ -53,17 +53,18 @@ PERM((b)) --> 111 110 101
 
 #define PERMS(b) PERM((b) >> 6), PERM((b) >> 3), PERM(b)
 
-/* Wrapper of all the xFn that manages memory. This function handles errors on
- * failure and returns the mem pointer on success*/
+/* A helper function called by each memory wrapper function to manage errors
+ * or return values safely.
+ */
 void *memcheck(const char *name, void *mem);
 
-/* Wrapper of malloc */
+/* Allocate memory with malloc and call memcheck to verify the allocation. */
 void *xmalloc(size_t size);
 
-/* Wrapper of realloc*/
+/* Reallocate memory with realloc and call memcheck to verify the allocation. */
 void *xrealloc(void *old, size_t size);
 
-/* Wrapper of strdup */
+/* Duplicate a string with strdup and call memcheck to verify the allocation. */
 void *xstrdup(const char *s);
 
 /* Simulate the mkdir -p command to create nested directories from the path
@@ -79,6 +80,17 @@ int mkdir_p(char *path);
 */
 int ls_la(char *path, char **buffer);
 
+/**
+ * Receives data from a socket, handling interruptions.
+ */
 ssize_t xrecv(int client_sd, void *buff, size_t len);
+
+/**
+ * Writes data to a socket, handling interruptions.
+ */
 ssize_t xwrite(int client_sd, void *buff, size_t len);
+
+/**
+ * Writes the entire buffer to a socket, ensuring all data is sent.
+ */
 ssize_t xwrite_all(int client_sd, void *buf, size_t len);
