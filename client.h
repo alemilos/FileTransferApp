@@ -1,5 +1,5 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef MY_FT_CLIENT_H
+#define MY_FT_CLIENT_H
 
 #include <sys/socket.h>
 

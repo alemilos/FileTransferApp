@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef MY_FT_SERVER_H
+#define MY_FT_SERVER_H
 
 #include "utils.h"
 

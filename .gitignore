@@ -1,7 +1,0 @@
-/server
-/client
-*.o
-/.vscode
-/root
-test
-test.c

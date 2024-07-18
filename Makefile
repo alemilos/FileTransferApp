@@ -9,7 +9,7 @@ run: server
 	 ./server ${SERVER_ARGS}
 
 server: server.o utils.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -pthread $(LDFLAGS) -o $@ $^
 
 client: client.o utils.o
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -24,6 +24,6 @@ utils.o: utils.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o server client
+	rm -f *.o client server 
 
 .PHONY: all run clean
