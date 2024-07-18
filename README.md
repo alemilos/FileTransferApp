@@ -10,5 +10,5 @@ You can also run `make server`
 
 # Usage
 
-./server -a [address] -p [port] -d [root_dir]
-./client -a [address] -p [port] [-w | -r | -l] -f [input_file] -o [output_file]
+- ./server -a [address] -p [port] -d [root_dir]
+- ./client -a [address] -p [port] [-w | -r | -l] -f [input_file] -o [output_file]
